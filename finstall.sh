@@ -3,6 +3,15 @@
 
 set -e
 
+error(){
+    echo -e "\e[1;31m$1\e[m"
+}
+
+if [[ "$(id -u)" == 0 ]]; then
+    error "Don't run FInstall as root."
+    exit 1
+fi
+
 if [ -z "$XDG_CACHE_HOME" ]; then
     FPATH="$HOME/.cache/finstall"
 else
@@ -14,15 +23,11 @@ fi
 set -u
 
 OPTION="$1"
-VERSION="1.0.0"
+VERSION="1.1.0"
 
 if [ ! -d "$FPATH" ]; then
     mkdir -p "$FPATH"
 fi
-
-error(){
-    echo -e "\e[1;31m$1\e[m"
-}
 
 notice() {
     echo -e "\e[1;32m$1\e[m"
@@ -106,6 +111,11 @@ uninstall(){
     fi
 }
 
+search () {
+    curl -sS "https://search.f-droid.org/api/search_apps?q=$1" \
+    | jq -r '.apps[] | "\(.name)\n\(.summary)\n\(.url)\n"'
+}
+
 simple_update(){
     TO_UPDATE="$FPATH/$1"
     if [ -d "$TO_UPDATE" ]; then
@@ -151,7 +161,7 @@ show_help(){
 Free Install Version $VERSION:
 USAGE: finstall.sh [OPTION] [PACKAGE]
 Options:
-    finstall.sh [install;uninstall;reinstall;update] PACKAGE
+    finstall.sh [install;uninstall;reinstall;update;search] PACKAGE
 
 Update all packages: finstall.sh update ALL
 
@@ -165,6 +175,7 @@ case "$OPTION" in
     reinstall)  reinstall "$2";;
     uninstall)  uninstall "$2";;
     update)     update_cli "$2";;
+    search)     search "$2";;
     help)       show_help;;
     version)    echo $VERSION;;
     *)          error "Unknown option. Use help for available commands."
